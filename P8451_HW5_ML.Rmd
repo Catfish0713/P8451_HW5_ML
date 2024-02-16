@@ -1,0 +1,135 @@
+---
+title: "P8451_HW5_ML"
+author: "Ruixi Li"
+date: "2024-02-14"
+output: html_document
+---
+# Introduction
+
+Goal: You want to predict current alcohol consumption but it is expensive and time-consuming to administer all of the behavioral testing that produces the personality scores. You will conduct a reproducible analysis to build and test classification models using regularized logistic regression and traditional logistic regression. You will produce a shareable report that includes code, results and answers to questions using R Markdown.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r_libarary, include=FALSE}
+library(tidyverse) 
+library(forcats)
+library(caret)
+library(glmnet)
+library(klaR)
+```
+
+# Data preparation 
+
+```{r data_pre}
+set.seed(123)
+alcohol_use = read_csv("alcohol_use.csv") 
+skimr::skim(alcohol_use)
+alcohol_use = alcohol_use[,-1]
+alcohol_use$alc_consumption = as.factor(alcohol_use$alc_consumption)
+
+#tidyverse way to create data partition
+train.indices <- alcohol_use %>%
+  pull(alc_consumption) %>%
+  createDataPartition(p = 0.7, list = FALSE)
+
+train.data <- alcohol_use %>%
+  slice(train.indices)
+
+test.data <- alcohol_use %>%
+  slice(-train.indices)
+
+control = trainControl(method = "repeatedcv", 
+                      number = 10,
+                      repeats = 5,
+                      selectionFunction = "best")
+```
+
+# Model building
+
+```{r elasticnet_training}
+en.model<- train(
+                  alc_consumption ~., 
+                  data = train.data, 
+                  method = "glmnet",
+                  trControl =  control, 
+                  preProc=c("center", "scale"),
+                  tuneLength = 10
+                )
+#Print the values of alpha and lambda that gave best prediction
+en.model$bestTune
+
+#Print all of the options examined
+en.model$results
+
+# Model coefficients
+coef(en.model$finalModel, en.model$bestTune$lambda)
+
+confusionMatrix(en.model)
+
+
+
+```
+
+
+```{r logistic_training}
+
+# Define logistic regression model
+log.model <- train(
+                  alc_consumption ~ .,
+                  data = train.data,
+                  method = "glm",
+                  trControl = control)
+
+confusionMatrix(log.model)
+```
+
+
+```{r lasso_training}
+set.seed(123)
+
+#Create grid to search lambda
+lambda<-10^seq(-3,3, length=100)
+
+#Note replacing tuneLength with tuneGrid
+la.model<-train(
+                alc_consumption ~., 
+                data=train.data, 
+                method="glmnet", 
+                trControl=trainControl("cv", number=10), 
+                preProc=c("center", "scale"), 
+                tuneGrid=expand.grid(alpha=1, lambda=lambda)
+              )
+
+confusionMatrix(la.model)
+```
+
+```{r compare_model}
+models = list(model1 = en.model, model2 = log.model, model3 = la.model)
+results <- resamples(models,
+                     metrics = "ROC",
+                     trControl = trainControl)
+```
+
+
+# Model evaluation
+
+```{r}
+
+results <- resamples(list(model1 = en.model, model2 = la.model, model3 = log.model))
+
+summary(results)
+
+
+# Make predictions in test set
+
+en.pred <- en.model %>% 
+              predict(test.data)
+
+# # Model prediction performance
+confusion_matrix = confusionMatrix(en.pred,test.data$alc_consumption)
+
+```
+
