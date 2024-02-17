@@ -56,7 +56,8 @@ en.model<- train(
                   method = "glmnet",
                   trControl =  control, 
                   preProc=c("center", "scale"),
-                  tuneLength = 10
+                  tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
+                                         lambda = exp(seq(6, 0, length = 100)))
                 )
 #Print the values of alpha and lambda that gave best prediction
 en.model$bestTune
@@ -98,7 +99,7 @@ la.model<-train(
                 alc_consumption ~., 
                 data=train.data, 
                 method="glmnet", 
-                trControl=trainControl("cv", number=10), 
+                trControl=control, 
                 preProc=c("center", "scale"), 
                 tuneGrid=expand.grid(alpha=1, lambda=lambda)
               )
@@ -106,29 +107,22 @@ la.model<-train(
 confusionMatrix(la.model)
 ```
 
+# Model comparison
+
 ```{r compare_model}
 models = list(model1 = en.model, model2 = log.model, model3 = la.model)
-results <- resamples(models,
-                     metrics = "ROC",
-                     trControl = trainControl)
+results <- resamples(models)
+summary(results)
 ```
-
+Since the accuarcy for model3(logistic regression with lasso penalty) is the highest among the 3 models, I would choose model 3(logistic regression with lasso penalty) as my final model.
 
 # Model evaluation
 
 ```{r}
-
-results <- resamples(list(model1 = en.model, model2 = la.model, model3 = log.model))
-
-summary(results)
-
-
-# Make predictions in test set
-
-en.pred <- en.model %>% 
+la.pred <- la.model %>% 
               predict(test.data)
 
-# # Model prediction performance
+# Model prediction performance
 confusion_matrix = confusionMatrix(en.pred,test.data$alc_consumption)
 
 ```
