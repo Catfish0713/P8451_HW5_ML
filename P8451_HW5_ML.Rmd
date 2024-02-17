@@ -13,12 +13,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r_libarary, include=FALSE}
+```{r libarary, include=FALSE}
 library(tidyverse) 
 library(forcats)
 library(caret)
 library(glmnet)
 library(klaR)
+library(gtsummary)
 ```
 
 # Data preparation 
@@ -62,14 +63,11 @@ en.model<- train(
 #Print the values of alpha and lambda that gave best prediction
 en.model$bestTune
 
-#Print all of the options examined
-en.model$results
 
 # Model coefficients
 coef(en.model$finalModel, en.model$bestTune$lambda)
 
 confusionMatrix(en.model)
-
 
 
 ```
@@ -85,6 +83,15 @@ log.model <- train(
                   trControl = control)
 
 confusionMatrix(log.model)
+
+#Print all of the options examined
+log.model$results
+
+# Model coefficients
+log.model$finalModel |> tbl_regression()
+summary(log.model)$coef
+
+
 ```
 
 
@@ -105,6 +112,14 @@ la.model<-train(
               )
 
 confusionMatrix(la.model)
+
+#Print the values of lambda that gave best prediction
+la.model$bestTune
+
+# Model coefficients
+coef(la.model$finalModel, la.model$bestTune$lambda) 
+
+
 ```
 
 # Model comparison
@@ -114,7 +129,7 @@ models = list(model1 = en.model, model2 = log.model, model3 = la.model)
 results <- resamples(models)
 summary(results)
 ```
-Since the accuarcy for model3(logistic regression with lasso penalty) is the highest among the 3 models, I would choose model 3(logistic regression with lasso penalty) as my final model.
+Since the accuracy and kappa for model3(logistic regression with lasso penalty) are the highest among the 3 models, I would choose model 3(logistic regression with lasso penalty) as my final model.
 
 # Model evaluation
 
@@ -123,7 +138,24 @@ la.pred <- la.model %>%
               predict(test.data)
 
 # Model prediction performance
-confusion_matrix = confusionMatrix(en.pred,test.data$alc_consumption)
+confusion_matrix = confusionMatrix(la.pred,test.data$alc_consumption)
+confusion_matrix
+
+#visualization
+cm = confusion_matrix$table
+cm_melted <- as.data.frame(as.table(cm))
+ggplot(data = cm_melted, aes(x = Reference, y = Prediction, fill = Freq)) +
+    geom_tile() +
+    geom_text(aes(label = sprintf("%d", Freq)), vjust = 1) +
+    scale_fill_gradient(low = "white", high = "blue") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(fill = "Count", title = "Confusion Matrix", x = "Actual label", y = "Predicted label")
 
 ```
 
+* Since the outcome is binary, I used confusionMatrix to evaluate this model. Accuracy is about 85.5%, PPV is about 78.6%, sensitivity is 100%, specifiicty is about 68.9%. These metrics suggest that the model is highly accurate and specific but could improve in terms of specificity to reduce the number of false negatives. 
+
+# Research questions
+
+* a) this model can directly address the research question that which features most strongly predict recent alcohol consumption (currentuse/noncurrentuse), because lasso regression can select features.  b) this model help address research question exploring whether interactions between different personality traits increase the predictive power of the model.
