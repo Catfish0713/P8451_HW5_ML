@@ -24,7 +24,7 @@ library(gtsummary)
 
 # Data preparation 
 
-```{r data_pre}
+```{r data_pre, message=FALSE, warning=FALSE}
 set.seed(123)
 alcohol_use = read_csv("alcohol_use.csv") 
 skimr::skim(alcohol_use)
