@@ -60,9 +60,10 @@ en.model<- train(
                   tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
                                          lambda = exp(seq(6, 0, length = 100)))
                 )
+# I chose tuneGrid here, because this command can be used for different scenarios,but using TuneLength, I have to look at all results and see which k is the best. 
+
 #Print the values of alpha and lambda that gave best prediction
 en.model$bestTune
-
 
 # Model coefficients
 coef(en.model$finalModel, en.model$bestTune$lambda)
