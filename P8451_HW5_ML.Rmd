@@ -2,7 +2,7 @@
 title: "P8451_HW5_ML"
 author: "Ruixi Li"
 date: "2024-02-14"
-output: html_document
+output: word_document
 ---
 # Introduction
 
@@ -58,7 +58,7 @@ en.model<- train(
                   trControl =  control, 
                   preProc=c("center", "scale"),
                   tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
-                                         lambda = exp(seq(6, 0, length = 100)))
+                                         lambda = exp(seq(3, -3, length = 100)))
                 )
 # I chose tuneGrid here, because this command can be used for different scenarios,but using TuneLength, I have to look at all results and see which k is the best. 
 
@@ -130,7 +130,8 @@ models = list(model1 = en.model, model2 = log.model, model3 = la.model)
 results <- resamples(models)
 summary(results)
 ```
-Since the accuracy and kappa for model3(logistic regression with lasso penalty) are the highest among the 3 models, I would choose model 3(logistic regression with lasso penalty) as my final model.
+
+The accuracy for model3(logistic regression with lasso penalty) and model1(elasticnet) are the highest(0.8515), larger than that for model2(traditional logistic regression). I would choose model 3(lasso) as my final model because it has good accuracy and relative lower computational consumption and it is more interpretable compared with model1(elasticnet).
 
 # Model evaluation
 
@@ -155,7 +156,7 @@ ggplot(data = cm_melted, aes(x = Reference, y = Prediction, fill = Freq)) +
 
 ```
 
-* Since the outcome is binary, I used confusionMatrix to evaluate this model. Accuracy is about 85.5%, PPV is about 78.6%, sensitivity is 100%, specifiicty is about 68.9%. These metrics suggest that the model is highly accurate and specific but could improve in terms of specificity to reduce the number of false negatives. 
+* Since the outcome is binary, I used confusionMatrix to evaluate this model. Accuracy is about 85.5%, PPV is about 78.6%, sensitivity is 100%, specificty is about 68.9%. These metrics suggest that the model is highly accurate and specific but could improve in terms of specificity to reduce the number of false negatives. 
 
 # Research questions
 

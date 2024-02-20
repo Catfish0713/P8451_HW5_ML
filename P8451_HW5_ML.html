@@ -370,17 +370,8 @@ questions using R Markdown.</p>
 <div id="data-preparation" class="section level1">
 <h1>Data preparation</h1>
 <pre class="r"><code>set.seed(123)
-alcohol_use = read_csv(&quot;alcohol_use.csv&quot;) </code></pre>
-<pre><code>## New names:
-## Rows: 1885 Columns: 9
-## ── Column specification
-## ──────────────────────────────────────────────────────── Delimiter: &quot;,&quot; chr
-## (1): alc_consumption dbl (8): ...1, neurotocism_score, extroversion_score,
-## openness_score, agreea...
-## ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
-## Specify the column types or set `show_col_types = FALSE` to quiet this message.
-## • `` -&gt; `...1`</code></pre>
-<pre class="r"><code>skimr::skim(alcohol_use)</code></pre>
+alcohol_use = read_csv(&quot;alcohol_use.csv&quot;) 
+skimr::skim(alcohol_use)</code></pre>
 <table>
 <caption>Data summary</caption>
 <tbody>
@@ -605,12 +596,9 @@ train.indices &lt;- alcohol_use %&gt;%
   createDataPartition(p = 0.7, list = FALSE)
 
 train.data &lt;- alcohol_use %&gt;%
-  slice(train.indices)</code></pre>
-<pre><code>## Warning: Slicing with a 1-column matrix was deprecated in dplyr 1.1.0.
-## This warning is displayed once every 8 hours.
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.</code></pre>
-<pre class="r"><code>test.data &lt;- alcohol_use %&gt;%
+  slice(train.indices)
+
+test.data &lt;- alcohol_use %&gt;%
   slice(-train.indices)
 
 control = trainControl(method = &quot;repeatedcv&quot;, 
@@ -627,24 +615,26 @@ control = trainControl(method = &quot;repeatedcv&quot;,
                   trControl =  control, 
                   preProc=c(&quot;center&quot;, &quot;scale&quot;),
                   tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
-                                         lambda = exp(seq(6, 0, length = 100)))
+                                         lambda = exp(seq(3, -3, length = 100)))
                 )
+# I chose tuneGrid here, because this command can be used for different scenarios,but using TuneLength, I have to look at all results and see which k is the best. 
+
 #Print the values of alpha and lambda that gave best prediction
 en.model$bestTune</code></pre>
-<pre><code>##     alpha lambda
-## 201   0.1      1</code></pre>
+<pre><code>##      alpha    lambda
+## 1131  0.55 0.3067206</code></pre>
 <pre class="r"><code># Model coefficients
 coef(en.model$finalModel, en.model$bestTune$lambda)</code></pre>
 <pre><code>## 8 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
-##                                  s1
-## (Intercept)             -0.13210356
-## neurotocism_score        .         
-## extroversion_score       .         
-## openness_score           .         
-## agreeableness_score      .         
-## conscientiousness_score  .         
-## impulsiveness_score     -0.16140268
-## sens_seeking_score      -0.08463062</code></pre>
+##                                   s1
+## (Intercept)             -0.134172804
+## neurotocism_score        .          
+## extroversion_score       .          
+## openness_score           .          
+## agreeableness_score      .          
+## conscientiousness_score  .          
+## impulsiveness_score     -0.337985809
+## sens_seeking_score      -0.003384134</code></pre>
 <pre class="r"><code>confusionMatrix(en.model)</code></pre>
 <pre><code>## Cross-Validated (10 fold, repeated 5 times) Confusion Matrix 
 ## 
@@ -652,10 +642,10 @@ coef(en.model$finalModel, en.model$bestTune$lambda)</code></pre>
 ##  
 ##                Reference
 ## Prediction      CurrentUse NotCurrentUse
-##   CurrentUse          51.9          18.8
-##   NotCurrentUse        1.4          28.0
+##   CurrentUse          53.2          14.8
+##   NotCurrentUse        0.0          31.9
 ##                             
-##  Accuracy (average) : 0.7985</code></pre>
+##  Accuracy (average) : 0.8515</code></pre>
 <pre class="r"><code># Define logistic regression model
 log.model &lt;- train(
                   alc_consumption ~ .,
@@ -1183,18 +1173,21 @@ summary(results)</code></pre>
 ## 
 ## Accuracy 
 ##             Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA&#39;s
-## model1 0.7196970 0.7803030 0.8030303 0.7985185 0.8181818 0.8473282    0
+## model1 0.7819549 0.8333333 0.8522929 0.8515362 0.8693182 0.9160305    0
 ## model2 0.7099237 0.7727273 0.7946738 0.7945351 0.8192071 0.8636364    0
 ## model3 0.8106061 0.8333333 0.8549618 0.8515324 0.8688372 0.9090909    0
 ## 
 ## Kappa 
 ##             Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA&#39;s
-## model1 0.4196768 0.5462837 0.5950433 0.5856318 0.6281690 0.6879466    0
+## model1 0.5485193 0.6585136 0.6970757 0.6956761 0.7334320 0.8292856    0
 ## model2 0.4170960 0.5455848 0.5862950 0.5871796 0.6362600 0.7247451    0
 ## model3 0.6108491 0.6585136 0.7025929 0.6957773 0.7315977 0.8145633    0</code></pre>
-<p>Since the accuracy and kappa for model3(logistic regression with
-lasso penalty) are the highest among the 3 models, I would choose model
-3(logistic regression with lasso penalty) as my final model.</p>
+<p>The accuracy for model3(logistic regression with lasso penalty) and
+model1(elasticnet) are the highest(0.8515), larger than that for
+model2(traditional logistic regression). I would choose model 3(lasso)
+as my final model because it has good accuracy and relative lower
+computational consumption and it is more interpretable compared with
+model1(elasticnet).</p>
 </div>
 <div id="model-evaluation" class="section level1">
 <h1>Model evaluation</h1>
@@ -1245,7 +1238,7 @@ ggplot(data = cm_melted, aes(x = Reference, y = Prediction, fill = Freq)) +
 <ul>
 <li>Since the outcome is binary, I used confusionMatrix to evaluate this
 model. Accuracy is about 85.5%, PPV is about 78.6%, sensitivity is 100%,
-specifiicty is about 68.9%. These metrics suggest that the model is
+specificty is about 68.9%. These metrics suggest that the model is
 highly accurate and specific but could improve in terms of specificity
 to reduce the number of false negatives.</li>
 </ul>
